@@ -62,4 +62,26 @@ final class WindowClassifierTests: XCTestCase {
         let result = classifier.classify(windows: [window], appIsHidden: false, settings: settings)
         XCTAssertTrue(result.ambiguous)
     }
+
+    // MARK: - isStandardWindow (issue #6: closing an auxiliary window must not quit)
+
+    func testIsStandardWindowTrueForStandardWindow() {
+        let classifier = WindowClassifier()
+        XCTAssertTrue(classifier.isStandardWindow(role: kAXWindowRole as String, subrole: kAXStandardWindowSubrole as String))
+    }
+
+    func testIsStandardWindowFalseForAuxiliaryWindows() {
+        let classifier = WindowClassifier()
+        XCTAssertFalse(classifier.isStandardWindow(role: kAXWindowRole as String, subrole: kAXDialogSubrole as String))
+        XCTAssertFalse(classifier.isStandardWindow(role: kAXWindowRole as String, subrole: kAXFloatingWindowSubrole as String))
+        XCTAssertFalse(classifier.isStandardWindow(role: kAXWindowRole as String, subrole: kAXSystemDialogSubrole as String))
+        XCTAssertFalse(classifier.isStandardWindow(role: kAXWindowRole as String, subrole: "AXUnknown"))
+    }
+
+    func testIsStandardWindowFalseForMissingOrNonWindowRole() {
+        let classifier = WindowClassifier()
+        XCTAssertFalse(classifier.isStandardWindow(role: nil, subrole: kAXStandardWindowSubrole as String))
+        XCTAssertFalse(classifier.isStandardWindow(role: kAXWindowRole as String, subrole: nil))
+        XCTAssertFalse(classifier.isStandardWindow(role: "AXButton", subrole: kAXStandardWindowSubrole as String))
+    }
 }

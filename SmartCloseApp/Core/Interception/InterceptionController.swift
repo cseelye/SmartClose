@@ -10,6 +10,7 @@ final class InterceptionController: @unchecked Sendable {
     private let eventMonitor: EventMonitor
     private let axInspector: AXInspecting
     private let windowCountingService: WindowCountingService
+    private let windowClassifier: WindowClassifier
     private let decisionEngine: DecisionEngine
     private let policyResolver: AppPolicyResolver
     private let actionExecutor: ActionExecutor
@@ -21,6 +22,7 @@ final class InterceptionController: @unchecked Sendable {
         eventMonitor: EventMonitor,
         axInspector: AXInspecting,
         windowCountingService: WindowCountingService,
+        windowClassifier: WindowClassifier,
         decisionEngine: DecisionEngine,
         policyResolver: AppPolicyResolver,
         actionExecutor: ActionExecutor,
@@ -30,6 +32,7 @@ final class InterceptionController: @unchecked Sendable {
         self.eventMonitor = eventMonitor
         self.axInspector = axInspector
         self.windowCountingService = windowCountingService
+        self.windowClassifier = windowClassifier
         self.decisionEngine = decisionEngine
         self.policyResolver = policyResolver
         self.actionExecutor = actionExecutor
@@ -125,12 +128,21 @@ final class InterceptionController: @unchecked Sendable {
             }
         }
 
+        let closedWindowIsStandard = windowClassifier.isStandardWindow(
+            role: axInspector.role(of: window),
+            subrole: axInspector.subrole(of: window)
+        )
+        if logVerbose {
+            Log.interception.debug("Closed window standard=\(closedWindowIsStandard)")
+        }
+
         let context = DecisionContext(
             isEnabled: settings.isEnabled,
             isPaused: settings.isPaused,
             permissionGranted: true,
             resolvedPolicy: resolved,
-            windowCount: windowCountResult
+            windowCount: windowCountResult,
+            closedWindowIsStandard: closedWindowIsStandard
         )
 
         let decision = decisionEngine.decide(context: context)
