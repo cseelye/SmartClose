@@ -14,6 +14,16 @@ final class WindowClassifier {
         AXSubrole.sheet
     ]
 
+    /// Whether a window with this role/subrole counts as a "normal" standard window for the
+    /// last-window decision. Auxiliary windows — dialogs, the Find/Replace panel, floating
+    /// inspectors, sheets, popovers — are not standard windows, so closing one must never quit
+    /// the app (issue #6).
+    func isStandardWindow(role: String?, subrole: String?) -> Bool {
+        guard let role, role == kAXWindowRole as String else { return false }
+        guard let subrole else { return false }
+        return normalSubroles.contains(subrole)
+    }
+
     func classify(windows: [WindowInfo], appIsHidden: Bool, settings: Settings) -> WindowCountResult {
         var countable = 0
         var ignored = 0

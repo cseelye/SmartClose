@@ -36,6 +36,7 @@ final class AppModel {
             eventMonitor: eventMonitor,
             axInspector: axInspector,
             windowCountingService: windowCounter,
+            windowClassifier: windowClassifier,
             decisionEngine: decisionEngine,
             policyResolver: policyResolver,
             actionExecutor: actionExecutor,

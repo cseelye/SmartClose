@@ -11,6 +11,9 @@ struct DecisionContext {
     let permissionGranted: Bool
     let resolvedPolicy: ResolvedPolicy
     let windowCount: WindowCountResult?
+    /// Whether the window whose close button was clicked is itself a standard window.
+    /// Closing an auxiliary panel (e.g. Find & Replace) must never quit the app.
+    let closedWindowIsStandard: Bool
 }
 
 struct DecisionResult: Codable {
@@ -38,6 +41,13 @@ struct DecisionEngine {
 
         if context.resolvedPolicy.behavior == .alwaysNormalClose {
             return DecisionResult(action: .passThrough, reason: "Always normal close policy")
+        }
+
+        // Only the close button of a standard window can quit the app. Closing an auxiliary
+        // window (Find & Replace, a dialog, a floating inspector, …) leaves the real windows
+        // open, so it must pass through even if exactly one normal window exists (issue #6).
+        if !context.closedWindowIsStandard {
+            return DecisionResult(action: .passThrough, reason: "Closed window is not a standard window")
         }
 
         guard let windowCount = context.windowCount else {

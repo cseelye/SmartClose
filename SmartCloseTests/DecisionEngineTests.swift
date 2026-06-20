@@ -2,56 +2,50 @@ import XCTest
 @testable import SmartClose
 
 final class DecisionEngineTests: XCTestCase {
-    func testLastWindowRequestsQuit() {
-        let engine = DecisionEngine()
-        let context = DecisionContext(
-            isEnabled: true,
-            isPaused: false,
+    private func decideClose(
+        isEnabled: Bool = true,
+        isPaused: Bool = false,
+        behavior: CloseBehavior = .smartClose,
+        isExcluded: Bool = false,
+        count: Int,
+        ambiguous: Bool = false,
+        closedWindowIsStandard: Bool = true
+    ) -> DecisionResult {
+        DecisionEngine().decide(context: DecisionContext(
+            isEnabled: isEnabled,
+            isPaused: isPaused,
             permissionGranted: true,
-            resolvedPolicy: ResolvedPolicy(behavior: .smartClose, matchedRule: nil, isExcluded: false),
-            windowCount: WindowCountResult(count: 1, ambiguous: false, ignoredCount: 0, reasons: [])
-        )
-        let result = engine.decide(context: context)
-        XCTAssertEqual(result.action, .requestQuit)
+            resolvedPolicy: ResolvedPolicy(behavior: behavior, matchedRule: nil, isExcluded: isExcluded),
+            windowCount: WindowCountResult(count: count, ambiguous: ambiguous, ignoredCount: 0, reasons: []),
+            closedWindowIsStandard: closedWindowIsStandard
+        ))
+    }
+
+    func testLastWindowRequestsQuit() {
+        XCTAssertEqual(decideClose(count: 1).action, .requestQuit)
     }
 
     func testMultipleWindowsPassThrough() {
-        let engine = DecisionEngine()
-        let context = DecisionContext(
-            isEnabled: true,
-            isPaused: false,
-            permissionGranted: true,
-            resolvedPolicy: ResolvedPolicy(behavior: .smartClose, matchedRule: nil, isExcluded: false),
-            windowCount: WindowCountResult(count: 2, ambiguous: false, ignoredCount: 0, reasons: [])
-        )
-        let result = engine.decide(context: context)
-        XCTAssertEqual(result.action, .passThrough)
+        XCTAssertEqual(decideClose(count: 2).action, .passThrough)
     }
 
     func testDisabledPassThrough() {
-        let engine = DecisionEngine()
-        let context = DecisionContext(
-            isEnabled: false,
-            isPaused: false,
-            permissionGranted: true,
-            resolvedPolicy: ResolvedPolicy(behavior: .smartClose, matchedRule: nil, isExcluded: false),
-            windowCount: WindowCountResult(count: 1, ambiguous: false, ignoredCount: 0, reasons: [])
-        )
-        let result = engine.decide(context: context)
-        XCTAssertEqual(result.action, .passThrough)
+        XCTAssertEqual(decideClose(isEnabled: false, count: 1).action, .passThrough)
     }
 
     func testAmbiguousPassThrough() {
-        let engine = DecisionEngine()
-        let context = DecisionContext(
-            isEnabled: true,
-            isPaused: false,
-            permissionGranted: true,
-            resolvedPolicy: ResolvedPolicy(behavior: .smartClose, matchedRule: nil, isExcluded: false),
-            windowCount: WindowCountResult(count: 1, ambiguous: true, ignoredCount: 0, reasons: ["Missing role"])
-        )
-        let result = engine.decide(context: context)
-        XCTAssertEqual(result.action, .passThrough)
+        XCTAssertEqual(decideClose(count: 1, ambiguous: true).action, .passThrough)
+    }
+
+    // Regression for issue #6: clicking the close button of an auxiliary window (Find &
+    // Replace, a dialog, a floating panel) must never quit, even when the app has exactly one
+    // standard window remaining.
+    func testNonStandardClosedWindowPassesThroughEvenAtLastWindow() {
+        XCTAssertEqual(decideClose(count: 1, closedWindowIsStandard: false).action, .passThrough)
+    }
+
+    func testStandardClosedWindowQuitsAtLastWindow() {
+        XCTAssertEqual(decideClose(count: 1, closedWindowIsStandard: true).action, .requestQuit)
     }
 
     // MARK: - Cmd+W path (decideAfterCmdW)

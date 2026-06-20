@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.2
+- Fix: closing an app's auxiliary window quit the whole app (#6). Clicking the red close button on a non-standard window — e.g. CotEditor's Find & Replace panel, a dialog, or a floating inspector — was treated as closing the last window and quit the app, even with the main window still open. SmartClose now only quits when the window you close is itself a standard window.
+
 ## 0.3.1
 - Fix: optional Cmd+W handling never quit any app (#3). When an app's last window closed, the window count came back 0 but flagged "ambiguous", which suppressed the quit. SmartClose now counts windows just before Cmd+W and, when there was exactly one normal window that is then gone, requests the quit reliably.
 
